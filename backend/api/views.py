@@ -1,11 +1,13 @@
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import timedelta
+import io
 import json
 import os
 import subprocess
 import uuid
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -17,6 +19,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
+import qrcode
 
 from .models import CCTVFeed, Gate, ParkingSlot, ParkingSpace, Reservation, User
 from .permissions import IsAdminUserType, IsVendorOrAdmin
@@ -35,6 +38,19 @@ from .serializers import (
 
 BOOKING_FEE = Decimal('1.00')
 HOURLY_RATE = Decimal('2.40')
+
+
+def _generate_qr_image(reservation):
+    img = qrcode.make(reservation.qr_code)
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    filename = f"{reservation.reservation_id}.png"
+    reservation.qr_image.save(
+        filename,
+        ContentFile(buffer.read()),
+        save=False,
+    )
 
 
 def _can_manage_space(user, space):
@@ -269,19 +285,18 @@ class ParkingLotVideoProcessEndpoint(APIView):
             except (json.JSONDecodeError, ValueError):
                 pass  # Ignore invalid polygons
 
-        # Prepare output path
-        output_dir = os.path.join(settings.BASE_DIR, 'parking_lot-main', 'output')
+        # Prepare output path inside MEDIA_ROOT so job status can serve it
+        output_dir = os.path.join(settings.MEDIA_ROOT, 'parking_lot_output')
         os.makedirs(output_dir, exist_ok=True)
         base_name, _ = os.path.splitext(input_name)
         output_name = base_name + '_processed.mp4'
-        output_storage = FileSystemStorage(location=output_dir)
-        output_path = output_storage.path(output_name)
+        output_path = os.path.join(output_dir, output_name)
 
         job_payload = {
             'job_id': job_id,
             'status': 'queued',
             'input_relative_path': os.path.join('uploads', job_id, input_name),
-            'output_relative_path': os.path.join('output', output_name),
+            'output_relative_path': os.path.join('parking_lot_output', output_name),
             'error': None,
         }
         try:
@@ -413,6 +428,9 @@ class ParkingLotVideoJobStatusEndpoint(APIView):
         input_rel = data.get('input_relative_path')
         output_rel = data.get('output_relative_path')
         error = data.get('error')
+        occupied = data.get('occupied')
+        free = data.get('free')
+        total = data.get('total')
 
         input_url = None
         output_url = None
@@ -432,6 +450,9 @@ class ParkingLotVideoJobStatusEndpoint(APIView):
                 'input_video_url': input_url,
                 'output_video_url': output_url,
                 'error': error,
+                'occupied': occupied,
+                'free': free,
+                'total': total,
             },
             status=status.HTTP_200_OK,
         )
@@ -567,6 +588,68 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
         return queryset.filter(user=user)
 
+    @action(detail=False, methods=['post'], url_path='scan')
+    def scan(self, request):
+        qr_data = request.data.get('qr_code', '').strip()
+        if not qr_data:
+            return Response({'error': 'qr_code is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        parts = qr_data.split('|')
+        if len(parts) != 3 or parts[0] != 'BOOKING':
+            return Response({'error': 'Invalid QR code format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        reservation_id = parts[2]
+        try:
+            reservation = Reservation.objects.select_related('slot', 'slot__space', 'user').get(
+                reservation_id=reservation_id
+            )
+        except Reservation.DoesNotExist:
+            return Response({'error': 'Reservation not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if reservation.status == Reservation.STATUS_RESERVED:
+            reservation.checkin_time = timezone.now()
+            reservation.start_time = reservation.checkin_time
+            reservation.status = Reservation.STATUS_CHECKED_IN
+            reservation.save(update_fields=['checkin_time', 'start_time', 'status'])
+            notify_slot_update(reservation.slot.space_id, reason='checked_in')
+            return Response({
+                'action': 'checkin',
+                'message': 'Check-in successful.',
+                'reservation': self.get_serializer(reservation).data,
+            }, status=status.HTTP_200_OK)
+
+        if reservation.status == Reservation.STATUS_CHECKED_IN:
+            reservation.checkout_time = timezone.now()
+            reservation.end_time = reservation.checkout_time
+            duration_seconds = max((reservation.checkout_time - reservation.checkin_time).total_seconds(), 60)
+            duration_hours = Decimal(str(duration_seconds / 3600)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            final_fee = (duration_hours * reservation.hourly_rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            reservation.final_fee = final_fee
+            reservation.amount = final_fee
+            reservation.status = Reservation.STATUS_CHECKED_OUT
+            reservation.save(update_fields=['checkout_time', 'end_time', 'final_fee', 'amount', 'status'])
+            reservation.slot.is_occupied = False
+            reservation.slot.save(update_fields=['is_occupied'])
+            notify_slot_update(reservation.slot.space_id, reason='checked_out')
+            return Response({
+                'action': 'checkout',
+                'message': 'Check-out successful.',
+                'reservation': self.get_serializer(reservation).data,
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            'error': f'No action available for reservation status: {reservation.status}.',
+            'reservation': self.get_serializer(reservation).data,
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get'], url_path='qr')
+    def qr(self, request, pk=None):
+        reservation = self.get_object()
+        if not reservation.qr_image:
+            return Response({'detail': 'QR image not generated yet.'}, status=status.HTTP_404_NOT_FOUND)
+        url = request.build_absolute_uri(reservation.qr_image.url)
+        return Response({'reservation_id': reservation.reservation_id, 'qr_image_url': url})
+
     @action(detail=True, methods=['post'])
     def pay_booking(self, request, pk=None):
         reservation = self.get_object()
@@ -588,7 +671,8 @@ class ReservationViewSet(viewsets.ModelViewSet):
         reservation.booking_fee_paid = True
         reservation.status = Reservation.STATUS_RESERVED
         reservation.qr_code = f"BOOKING|{reservation.slot.slot_id}|{reservation.reservation_id}"
-        reservation.save(update_fields=['booking_fee_paid', 'status', 'qr_code'])
+        _generate_qr_image(reservation)
+        reservation.save(update_fields=['booking_fee_paid', 'status', 'qr_code', 'qr_image'])
 
         reservation.slot.is_occupied = True
         reservation.slot.save(update_fields=['is_occupied'])

@@ -238,9 +238,20 @@ class _DemoWorkingScreenState extends State<DemoWorkingScreen> with SingleTicker
             }
 
             // Simulate AI results - in real app, parse from backend response if available
-            final totalSlots = slots;
-            _occupiedSlots = (totalSlots * 0.6).round();
-            _freeSlots = totalSlots - _occupiedSlots;
+            // final totalSlots = slots;
+            // _occupiedSlots = (totalSlots * 0.6).round();
+            // _freeSlots = totalSlots - _occupiedSlots;
+            final occupied = statusResult['occupied'] ?? 0;
+final free = statusResult['free'] ?? 0;
+
+_occupiedSlots = occupied;
+_freeSlots = free;
+final slotData = statusResult['slots'] ?? [];
+List<bool> slotStatus = [];
+
+for (var s in slotData) {
+  slotStatus.add(s['occupied'] == true);
+}
 
             setState(() {
               _isProcessing = false;
@@ -900,6 +911,7 @@ class PolygonEditor extends StatefulWidget {
     required this.polygons,
     required this.onChanged,
     required this.background,
+    
   });
 
   @override
@@ -960,9 +972,10 @@ class _PolygonEditorState extends State<PolygonEditor> {
                     widget.background,
                     CustomPaint(
                       painter: _PolygonPainter(
-                        polygons: _polygons,
-                        currentPolygon: _currentPolygon,
-                      ),
+  polygons: _polygons,
+  currentPolygon: _currentPolygon,
+  slotStatus: [], // empty while editing
+),
                     ),
                   ],
                 ),
@@ -997,43 +1010,94 @@ class _PolygonEditorState extends State<PolygonEditor> {
 class _PolygonPainter extends CustomPainter {
   final List<List<Offset>> polygons;
   final List<Offset> currentPolygon;
+  final List<bool> slotStatus; // true = occupied, false = free
 
   _PolygonPainter({
     required this.polygons,
     required this.currentPolygon,
+    required this.slotStatus,
   });
 
-  @override
-  void paint(Canvas canvas, Size size) {
+ @override
+void paint(Canvas canvas, Size size) {
+  for (int i = 0; i < polygons.length; i++) {
+    final poly = polygons[i];
+
+    if (poly.length < 2) continue;
+
+    // ✅ Get slot status safely
+    final isOccupied =
+        (i < slotStatus.length) ? slotStatus[i] : false;
+
+    // ✅ Dynamic color based on AI result
     final fillPaint = Paint()
-      ..color = const Color(0xFF22C55E).withOpacity(0.3)
+      ..color = isOccupied
+          ? Colors.red.withOpacity(0.4)
+          : Colors.green.withOpacity(0.4)
       ..style = PaintingStyle.fill;
 
     final borderPaint = Paint()
-      ..color = const Color(0xFF22C55E)
+      ..color = isOccupied ? Colors.red : Colors.green
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
-    for (final poly in polygons) {
-      if (poly.length < 2) continue;
-      final path = Path()..addPolygon(poly, true);
-      canvas.drawPath(path, fillPaint);
-      canvas.drawPath(path, borderPaint);
-    }
+    final path = Path()..addPolygon(poly, true);
 
-    if (currentPolygon.isNotEmpty) {
-      final path = Path()..addPolygon(currentPolygon, false);
-      final currentPaint = Paint()
-        ..color = const Color(0xFF38BDF8)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2;
-      canvas.drawPath(path, currentPaint);
+canvas.drawPath(path, fillPaint);
+canvas.drawPath(path, borderPaint);
 
-      for (final p in currentPolygon) {
-        canvas.drawCircle(p, 4, Paint()..color = const Color(0xFF38BDF8));
-      }
+// ✅ Calculate center of polygon
+double centerX = 0;
+double centerY = 0;
+
+for (final p in poly) {
+  centerX += p.dx;
+  centerY += p.dy;
+}
+
+centerX /= poly.length;
+centerY /= poly.length;
+
+// ✅ Draw slot number text
+final textPainter = TextPainter(
+  text: TextSpan(
+    text: 'S${i + 1}', // Slot number
+    style: TextStyle(
+      color: Colors.white,
+      fontSize: 14,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+  textDirection: TextDirection.ltr,
+);
+
+textPainter.layout();
+
+// Center text
+final offset = Offset(
+  centerX - textPainter.width / 2,
+  centerY - textPainter.height / 2,
+);
+
+textPainter.paint(canvas, offset);
+  }
+
+  // ✏️ Drawing current polygon (while user is marking)
+  if (currentPolygon.isNotEmpty) {
+    final path = Path()..addPolygon(currentPolygon, false);
+
+    final currentPaint = Paint()
+      ..color = const Color(0xFF38BDF8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    canvas.drawPath(path, currentPaint);
+
+    for (final p in currentPolygon) {
+      canvas.drawCircle(p, 4, Paint()..color = const Color(0xFF38BDF8));
     }
   }
+}
 
   @override
   bool shouldRepaint(covariant _PolygonPainter oldDelegate) {

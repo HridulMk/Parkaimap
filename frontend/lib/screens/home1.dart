@@ -14,12 +14,12 @@ import 'parking_list.dart';
 import 'welcome.dart';
 import 'demo_working.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen1 extends StatefulWidget {
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  _HomeScreenState1 createState() => _HomeScreenState1();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState1 extends State<HomeScreen1> {
   int _selectedIndex = 2; // default to Home tab
   bool _isBackendConnected = true;
   Timer? _connectionTimer;
@@ -73,28 +73,10 @@ class _HomeScreenState extends State<HomeScreen> {
   extendBody: true,
       backgroundColor: Colors.transparent.withOpacity(0.16),
       body: _buildBody(),
-      // body: SafeArea(
-      //   child: Column(
-      //     children: [
-      //       Expanded(child: _buildBody()),
-      //       if (!_isBackendConnected)
-      //         Container(
-      //           color: Colors.red,
-      //           width: double.infinity,
-      //           padding: const EdgeInsets.all(8.0),
-      //           child: const Text(
-      //             'Warning: Backend server is not reachable. Some features may not work.',
-      //             style: TextStyle(color: Colors.white),
-      //             textAlign: TextAlign.center,
-      //           ),
-      //         ),
-      //     ],
-      //   ),
+      // bottomNavigationBar: AppFloatingNavBar(
+      //   selectedIndex: _selectedIndex,
+      //   onTap: _onNavTap,
       // ),
-      bottomNavigationBar: AppFloatingNavBar(
-        selectedIndex: _selectedIndex,
-        onTap: _onNavTap,
-      ),
     );
   }
 }

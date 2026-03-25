@@ -33,6 +33,8 @@ urlpatterns = [
     re_path(r'^slots/(?P<slot_id>\d+)/activate/?$', views.ParkingSlotActivateEndpoint.as_view(), name='slots_activate'),
     re_path(r'^slots/(?P<slot_id>\d+)/deactivate/?$', views.ParkingSlotDeactivateEndpoint.as_view(), name='slots_deactivate'),
 
+    re_path(r'^reservations/scan/?$', views.ReservationViewSet.as_view({'post': 'scan'}), name='reservation_scan'),
+    re_path(r'^reservations/(?P<pk>\d+)/qr/?$', views.ReservationViewSet.as_view({'get': 'qr'}), name='reservation_qr'),
     re_path(r'^reservations/(?P<pk>\d+)/pay_booking/?$', views.ReservationViewSet.as_view({'post': 'pay_booking'}), name='reservation_pay_booking_explicit'),
     re_path(r'^reservations/(?P<pk>\d+)/checkin/?$', views.ReservationViewSet.as_view({'post': 'checkin'}), name='reservation_checkin_explicit'),
     re_path(r'^reservations/(?P<pk>\d+)/checkout/?$', views.ReservationViewSet.as_view({'post': 'checkout'}), name='reservation_checkout_explicit'),

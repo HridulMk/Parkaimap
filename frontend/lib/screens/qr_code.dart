@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../services/parking_service.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class QRCodeScreen extends StatefulWidget {
   final String slotName;
@@ -183,10 +186,32 @@ class _QRCodeScreenState extends State<QRCodeScreen> {
                     height: 250,
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color.fromARGB(255, 254, 253, 253),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Center(child: QrCodeView(qrData: actualQrData)),
+                    // child: Center(child: QrCodeView(qrData: actualQrData)),
+                  child: Center(
+  child: FutureBuilder<List<int>>(
+    future: ParkingService.getReservationQrImageBytes(widget.reservationPk),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const CircularProgressIndicator();
+      }
+      if (snapshot.hasError || !snapshot.hasData) {
+        return const Text(
+          "Failed to load QR",
+          style: TextStyle(color: Colors.red),
+        );
+      }
+      return Image.memory(
+        Uint8List.fromList(snapshot.data!),
+        width: 200,
+        height: 200,
+        fit: BoxFit.contain,
+      );
+    },
+  ),
+),
                   ),
                   const SizedBox(height: 12),
                   const Text(

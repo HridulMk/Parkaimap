@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: parking_backend
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn parking_backend.wsgi:application"

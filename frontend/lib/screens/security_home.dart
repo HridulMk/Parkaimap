@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/auth_service.dart';
-import '../widgets/app_floating_nav.dart';
+import '../widgets/app_floating_nav_security.dart';
 import 'welcome.dart';
-import 'my_bookings.dart';
-import 'dashboard.dart';
-import 'home.dart';
-import 'parking_list.dart';
+import 'security_qr_scanner.dart';
 
 class SecurityHomeScreen extends StatefulWidget {
   const SecurityHomeScreen({super.key});
@@ -41,28 +38,19 @@ class _SecurityHomeScreenState extends State<SecurityHomeScreen> {
   }
 
   void _onNavTap(int index) {
-    if (index == _selectedIndex) return;
-    Widget screen;
-    switch (index) {
-      case 0:
-        screen = const MyBookingsScreen();
-        break;
-      case 1:
-        screen = DashboardScreen();
-        break;
-      case 2:
-        screen = HomeScreen();
-        break;
-      case 3:
-        screen = ParkingListScreen();
-        break;
-      case 4:
-      default:
-        screen = const Scaffold(body: Center(child: Text('Profile')));
-        break;
-    }
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => screen));
+  if (index == _selectedIndex) return;
+
+  if (index == 1) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SecurityQrScannerScreen()),
+    );
+    return;
   }
+
+  Navigator.of(context).pushReplacement(
+    MaterialPageRoute(builder: (_) => const SecurityHomeScreen()),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -183,6 +171,15 @@ class _SecurityHomeScreenState extends State<SecurityHomeScreen> {
                   ),
                   const SizedBox(height: 12),
                   _ActionCard(
+                    icon: Icons.qr_code_scanner,
+                    title: 'Scan QR Code',
+                    subtitle: 'Check-in or check-out a vehicle',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SecurityQrScannerScreen()),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _ActionCard(
                     icon: Icons.lock_open,
                     title: 'Unlock Gate',
                     subtitle: 'Manually unlock a gate',
@@ -234,7 +231,7 @@ class _SecurityHomeScreenState extends State<SecurityHomeScreen> {
             ),
         ],
       ),
-      bottomNavigationBar: AppFloatingNavBar(
+      bottomNavigationBar: AppFloatingNavSecurity(
         selectedIndex: _selectedIndex,
         onTap: _onNavTap,
       ),

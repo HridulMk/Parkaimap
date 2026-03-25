@@ -152,6 +152,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             'hourly_rate',
             'status',
             'qr_code',
+            'qr_image',
             'created_at',
         ]
 
@@ -179,6 +180,17 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             try:
                 user = User.objects.get(email=username)
                 attrs[self.username_field] = user.username
+            except User.DoesNotExist:
+                pass
+                
+        username_val = attrs.get(self.username_field)
+        password_val = attrs.get('password')
+        if username_val and password_val:
+            try:
+                user = User.objects.get(username=username_val)
+                if not user.is_active and user.check_password(password_val):
+                    from rest_framework.exceptions import AuthenticationFailed
+                    raise AuthenticationFailed('Your account is pending admin approval. Please wait for an administrator to activate your account.')
             except User.DoesNotExist:
                 pass
 

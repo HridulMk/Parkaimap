@@ -22,18 +22,18 @@ class ApiService {
   static const _accessTokenKey = 'auth_token';
   static const _refreshTokenKey = 'refresh_token';
 
-  // static String get baseUrl {
-  //   if (kIsWeb) return 'http://localhost:8000/api';
-  //   if (Platform.isAndroid) return 'http://10.0.2.2:8000/api';
-  //   if (Platform.isIOS) return 'http://localhost:8000/api';
-  //   return 'http://localhost:8000/api';
-  // }
-
   static String get baseUrl {
-    return 'http://192.168.0.184:8000/api';
-      
-    // return 'http://10.36.14.137:8000/api';
+    if (kIsWeb) return 'http://localhost:8000/api';
+    if (Platform.isAndroid) return 'http://10.0.2.2:8000/api';
+    if (Platform.isIOS) return 'http://localhost:8000/api';
+    return 'http://localhost:8000/api';
   }
+
+  // static String get baseUrl {
+  //   return 'http://192.168.0.184:8000/api';
+  //     // return 'https://parkingai.onrender.com/api';
+  //   return 'http://10.36.14.137:8000/api';
+  // }
 
 
 
@@ -66,7 +66,7 @@ class ApiService {
   static Future<dynamic> get(String endpoint, {bool auth = true}) async {
     final response = await http
         .get(Uri.parse('$baseUrl/$endpoint'), headers: await _headers(auth: auth))
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 60));
     return _processResponse(response);
   }
 
@@ -77,7 +77,7 @@ class ApiService {
           headers: await _headers(auth: auth),
           body: jsonEncode(body ?? {}),
         )
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 60));
     return _processResponse(response);
   }
 
@@ -107,7 +107,7 @@ class ApiService {
       }
     }
 
-    final streamed = await request.send().timeout(const Duration(seconds: 30));
+    final streamed = await request.send().timeout(const Duration(minutes: 5));
     final response = await http.Response.fromStream(streamed);
     return _processResponse(response);
   }
@@ -119,7 +119,7 @@ class ApiService {
           headers: await _headers(auth: true),
           body: jsonEncode(body ?? {}),
         )
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 60));
     return _processResponse(response);
   }
 
@@ -130,14 +130,14 @@ class ApiService {
           headers: await _headers(auth: auth),
           body: jsonEncode(body ?? {}),
         )
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 60));
     return _processResponse(response);
   }
 
   static Future<dynamic> delete(String endpoint) async {
     final response = await http
         .delete(Uri.parse('$baseUrl/$endpoint'), headers: await _headers(auth: true))
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 60));
     return _processResponse(response);
   }
 

@@ -47,7 +47,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
             return const Center(child: Text('No bookings found yet.'));
           }
 
-          return RefreshIndicator(
+      return RefreshIndicator(
             onRefresh: () async => _reload(),
             child: ListView.separated(
               padding: const EdgeInsets.all(12),

@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import '../models/parking_slot.dart';
 import 'api_service.dart';
+import 'package:http/http.dart' as http;
 
 class ParkingService {
   static List<dynamic> _normalizeListResponse(dynamic response) {
@@ -63,6 +64,46 @@ class ParkingService {
     try {
       final response = await ApiService.post('reservations/$reservationId/pay_booking/', auth: true);
       return {'success': true, 'reservation': response};
+    } catch (e) {
+      return {'success': false, 'error': e.toString().replaceFirst('Exception: ', '')};
+    }
+  }
+
+  static Future<String> getReservationQrUrl(int reservationId) async {
+    try {
+      final response = await ApiService.get('reservations/$reservationId/qr/', auth: true);
+      final url = response['qr_image_url']?.toString() ?? '';
+      if (url.isEmpty) throw Exception('QR image not available');
+      return url;
+    } catch (e) {
+      throw Exception('Failed to get QR URL: $e');
+    }
+  }
+
+  static Future<List<int>> getReservationQrImageBytes(int reservationId) async {
+    final url = await getReservationQrUrl(reservationId);
+    final token = await ApiService.getAccessToken();
+    final response = await http.get(
+      Uri.parse(url),
+      headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+    );
+    if (response.statusCode != 200) throw Exception('Failed to download QR image');
+    return response.bodyBytes;
+  }
+
+  static Future<Map<String, dynamic>> scanQrCode(String qrCode) async {
+    try {
+      final response = await ApiService.post(
+        'reservations/scan/',
+        auth: true,
+        body: {'qr_code': qrCode},
+      );
+      return {
+        'success': true,
+        'action': response['action'],
+        'message': response['message'],
+        'reservation': response['reservation'],
+      };
     } catch (e) {
       return {'success': false, 'error': e.toString().replaceFirst('Exception: ', '')};
     }
@@ -225,6 +266,10 @@ class ParkingService {
           'inputVideoUrl': response['input_video_url'],
           'outputVideoUrl': response['output_video_url'],
           'error': response['error'],
+          'occupied': response['occupied'],
+          'free': response['free'],
+          'total': response['total'],
+          'slots': response['slots'], // ✅ ADD THIS LINE
         };
       }
 

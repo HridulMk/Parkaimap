@@ -1,12 +1,11 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
-class AppFloatingNavBar extends StatelessWidget {
+class AppFloatingNavSecurity extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onTap;
 
-  const AppFloatingNavBar({
+  const AppFloatingNavSecurity({
     super.key,
     required this.selectedIndex,
     required this.onTap,
@@ -30,7 +29,8 @@ class AppFloatingNavBar extends StatelessWidget {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  
+
+                  // 🔹 Background Glass Effect
                   Positioned(
                     left: 8,
                     right: 8,
@@ -43,16 +43,17 @@ class AppFloatingNavBar extends StatelessWidget {
                           height: 66,
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.08),
-                            // color: const Color.fromARGB(0, 64, 211, 216).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(28),
                             border: Border.all(
-                                color: Colors.transparent.withOpacity(0.16)
-                                )
+                              color: Colors.transparent.withOpacity(0.16),
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
+
+                  // 🔹 Nav Items
                   Positioned(
                     left: 0,
                     right: 0,
@@ -60,61 +61,51 @@ class AppFloatingNavBar extends StatelessWidget {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _NavButton(
-                                  icon: Icons.book_online_outlined,
-                                  label: 'My Booking',
-                                  selected: selectedIndex == 0,
-                                  iconSize: iconSize,
-                                  labelSize: labelSize,
-                                  onTap: () => onTap(0),
-                                ),
-                              ),
-                              Expanded(
-                                child: _NavButton(
-                                  icon: Icons.dashboard_outlined,
-                                  label: 'Dashboard',
-                                  selected: selectedIndex == 1,
-                                  iconSize: iconSize,
-                                  labelSize: labelSize,
-                                  onTap: () => onTap(1),
-                                ),
-                              ),
-                            ],
+                          child: _NavButton(
+                            icon: Icons.videocam_outlined,
+                            label: 'CCTV',
+                            selected: selectedIndex == 0,
+                            iconSize: iconSize,
+                            labelSize: labelSize,
+                            onTap: () => onTap(0),
+                          ),
+                        ),
+                        Expanded(
+                          child: _NavButton(
+                            icon: Icons.qr_code_scanner_outlined,
+                            label: 'Scan',
+                            selected: selectedIndex == 1,
+                            iconSize: iconSize,
+                            labelSize: labelSize,
+                            onTap: () => onTap(1),
                           ),
                         ),
                         SizedBox(width: compact ? 72 : 84),
                         Expanded(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _NavButton(
-                                  icon: Icons.local_parking_outlined,
-                                  label: 'Parking',
-                                  selected: selectedIndex == 3,
-                                  iconSize: iconSize,
-                                  labelSize: labelSize,
-                                  onTap: () => onTap(3),
-                                ),
-                              ),
-                              Expanded(
-                                child: _NavButton(
-                                  icon: Icons.person_outline,
-                                  label: 'Profile',
-                                  selected: selectedIndex == 4,
-                                  iconSize: iconSize,
-                                  labelSize: labelSize,
-                                  onTap: () => onTap(4),
-                                ),
-                              ),
-                            ],
+                          child: _NavButton(
+                            icon: Icons.history_toggle_off_outlined,
+                            label: 'Logs',
+                            selected: selectedIndex == 3,
+                            iconSize: iconSize,
+                            labelSize: labelSize,
+                            onTap: () => onTap(3),
+                          ),
+                        ),
+                        Expanded(
+                          child: _NavButton(
+                            icon: Icons.warning_amber_outlined,
+                            label: 'Alerts',
+                            selected: selectedIndex == 4,
+                            iconSize: iconSize,
+                            labelSize: labelSize,
+                            onTap: () => onTap(4),
                           ),
                         ),
                       ],
                     ),
                   ),
+
+                  // 🔹 Center Button (Security Dashboard)
                   Positioned(
                     left: 0,
                     right: 0,
@@ -122,7 +113,7 @@ class AppFloatingNavBar extends StatelessWidget {
                     child: Center(
                       child: InkWell(
                         borderRadius: BorderRadius.circular(44),
-                        onTap: () => onTap(2),
+                        onTap: () => onTap(3),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
                           width: compact ? 78 : 86,
@@ -132,25 +123,19 @@ class AppFloatingNavBar extends StatelessWidget {
                             color: selectedIndex == 2
                                 ? const Color(0xFFCAE6EA)
                                 : const Color(0xFFF6F8FA),
-                            // boxShadow: const [
-                            //   BoxShadow(
-                            //       color: Color(0x22000000),
-                            //       blurRadius: 14,
-                            //       offset: Offset(0, 8)),
-                            // ],
                             boxShadow: [
-  BoxShadow(
-    color: Color(0x330EA5A4),
-    blurRadius: 20,
-    spreadRadius: 2,
-  ),
-],
+                              BoxShadow(
+                                color: Color(0x330EA5A4),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                              ),
+                            ],
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                Icons.home_outlined,
+                                Icons.security,
                                 size: compact ? 24 : 26,
                                 color: selectedIndex == 2
                                     ? const Color(0xFF0EA5A4)
@@ -158,15 +143,13 @@ class AppFloatingNavBar extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Home',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                'Security',
                                 style: TextStyle(
+                                  fontSize: labelSize,
+                                  fontWeight: FontWeight.w700,
                                   color: selectedIndex == 2
                                       ? const Color(0xFF0EA5A4)
                                       : const Color(0xFF222A35),
-                                  fontSize: labelSize,
-                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
@@ -204,7 +187,9 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? const Color(0xFF0EA5A4) : const Color.fromARGB(255, 118, 138, 150);
+    final color = selected
+        ? const Color(0xFF0EA5A4)
+        : const Color.fromARGB(255, 118, 138, 150);
 
     return InkWell(
       borderRadius: BorderRadius.circular(16),
@@ -220,12 +205,11 @@ class _NavButton extends StatelessWidget {
               fit: BoxFit.scaleDown,
               child: Text(
                 label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: color,
                   fontSize: labelSize,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  fontWeight:
+                      selected ? FontWeight.w700 : FontWeight.w600,
                 ),
               ),
             ),

@@ -49,7 +49,8 @@ def process_video(input_path: str, output_path: str, polygons_path: Optional[str
       polygons = []
 
   # Load YOLO model
-  model = YOLO("best.pt")
+  model_path = os.path.join(os.path.dirname(__file__), "best.pt")
+  model = YOLO(model_path)
 
   cap = cv2.VideoCapture(input_path)
   if not cap.isOpened():
@@ -114,6 +115,7 @@ def process_video(input_path: str, output_path: str, polygons_path: Optional[str
 
   cap.release()
   out.release()
+  return {'occupied': occupied_zones, 'free': free_zones, 'total': total_zones}
 
 
 def main(argv: list[str]) -> None:
@@ -144,12 +146,12 @@ def main(argv: list[str]) -> None:
 
   _update_job(job_path, status="running")
   try:
-    process_video(input_path, output_path, polygons_path)
+    counts = process_video(input_path, output_path, polygons_path)
   except Exception as exc:  # noqa: BLE001
     _update_job(job_path, status="failed", error=str(exc))
     raise
   else:
-    _update_job(job_path, status="completed")
+    _update_job(job_path, status="completed", occupied=counts['occupied'], free=counts['free'], total=counts['total'])
 
 
 if __name__ == "__main__":

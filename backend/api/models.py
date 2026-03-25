@@ -48,6 +48,10 @@ class ParkingSlot(models.Model):
         return f"{self.label} ({self.slot_id})"
 
 
+def _qr_image_upload_path(instance, filename):
+    return f'qr/{instance.reservation_id}/{filename}'
+
+
 class Reservation(models.Model):
     STATUS_PENDING_BOOKING_PAYMENT = 'pending_booking_payment'
     STATUS_RESERVED = 'reserved'
@@ -79,6 +83,7 @@ class Reservation(models.Model):
     hourly_rate = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('2.40'))
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_PENDING_BOOKING_PAYMENT)
     qr_code = models.TextField(blank=True)
+    qr_image = models.ImageField(upload_to=_qr_image_upload_path, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -5,38 +5,38 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart'; // for kIsWeb
 import 'dart:async'; // For TimeoutException
 
-// class AuthService {
-//   // Base URL depends on platform
-//   static String get baseUrl {
-//     // default to localhost for desktop/web
-//     if (kIsWeb) {
-//       return 'http://localhost:8000/api';
-//     }
-//     if (Platform.isAndroid) {
-//       return 'http://10.0.2.2:8000/api';
-//     }
-//     if (Platform.isIOS) {
-//       return 'http://localhost:8000/api';
-//     }
-//     // Windows, Mac, Linux
-//     return 'http://localhost:8000/api';
-//   }
 class AuthService {
   // Base URL depends on platform
   static String get baseUrl {
     // default to localhost for desktop/web
     if (kIsWeb) {
-      return 'http://192.168.0.184:8000/api';
+      return 'http://localhost:8000/api';
     }
     if (Platform.isAndroid) {
-      return 'http://192.168.0.184:8000/api';
+      return 'http://10.0.2.2:8000/api';
     }
     if (Platform.isIOS) {
-      return 'http://192.168.0.184:8000/api';
+      return 'http://localhost:8000/api';
     }
     // Windows, Mac, Linux
-    return 'http://192.168.0.184:8000/api';
+    return 'http://localhost:8000/api';
   }
+// class AuthService {
+//   // Base URL depends on platform
+//   static String get baseUrl {
+//     // default to localhost for desktop/web
+//     if (kIsWeb) {
+//       return 'https://parkingai.onrender.com/api';
+//     }
+//     if (Platform.isAndroid) {
+//       return 'https://parkingai.onrender.com/api';
+//     }
+//     if (Platform.isIOS) {
+//       return 'https://parkingai.onrender.com/api';
+//     }
+//     // Windows, Mac, Linux
+//     return 'https://parkingai.onrender.com/api';
+//   }
 
   static const _storage = FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
@@ -55,10 +55,10 @@ class AuthService {
         throw SocketException('Backend unreachable');
       }
 
-      // Execute with 10s timeout
+      // Execute with 60s timeout for render wake up
       return await request().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () => throw TimeoutException('Request timed out', const Duration(seconds: 10)),
+        const Duration(seconds: 60),
+        onTimeout: () => throw TimeoutException('Request timed out', const Duration(seconds: 60)),
       );
     } catch (e) {
       if (e is SocketException || e is TimeoutException) {
@@ -163,7 +163,11 @@ class AuthService {
           errorCode = 'NET_001';  // Backend down
           message = 'Backend error during login';
         } else if (response.statusCode == 401) {
-          message = 'Invalid credentials';
+          if (data['detail'] != null || data['non_field_errors'] != null) {
+            // Keep backend message
+          } else {
+            message = 'Invalid credentials';
+          }
         }
         return {'success': false, 'error': message, 'errorCode': errorCode};
       }
@@ -299,7 +303,7 @@ class AuthService {
   static Future<bool> checkBackendConnection() async {
     try {
       final url = baseUrl.replaceAll('/api', '/');
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 60));
       final isSuccess = response.statusCode < 500;
       debugPrint('Backend ping: ${isSuccess ? 'Reachable' : 'Unreachable (${response.statusCode})'}');
       return isSuccess;

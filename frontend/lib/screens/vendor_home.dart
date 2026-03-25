@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parking_app/screens/home1.dart';
 import 'dart:async';
 import '../services/auth_service.dart';
 import '../widgets/app_floating_nav.dart';
@@ -7,6 +8,7 @@ import 'my_bookings.dart';
 import 'dashboard.dart';
 import 'home.dart';
 import 'parking_list.dart';
+
 
 class VendorHomeScreen extends StatefulWidget {
   const VendorHomeScreen({super.key});
@@ -18,7 +20,7 @@ class VendorHomeScreen extends StatefulWidget {
 class _VendorHomeScreenState extends State<VendorHomeScreen> {
   bool _isBackendConnected = true;
   Timer? _connectionTimer;
-  int _selectedIndex = 1; // Vendor dashboard
+  int _selectedIndex = 4; // default to Vendor profile tab
 
   @override
   void initState() {
@@ -35,198 +37,160 @@ class _VendorHomeScreenState extends State<VendorHomeScreen> {
 
   Future<void> _checkConnection() async {
     final connected = await AuthService.checkBackendConnection();
-    if (mounted) {
-      setState(() => _isBackendConnected = connected);
-    }
+    if (mounted) setState(() => _isBackendConnected = connected);
   }
 
   void _onNavTap(int index) {
-    if (index == _selectedIndex) return;
-    Widget screen;
-    switch (index) {
+    setState(() => _selectedIndex = index);
+  }
+
+  Widget _buildBody() {
+    switch (_selectedIndex) {
       case 0:
-        screen = const MyBookingsScreen();
-        break;
+        return const MyBookingsScreen();
       case 1:
-        screen = DashboardScreen();
-        break;
+        return DashboardScreen();
       case 2:
-        screen = HomeScreen();
-        break;
+        return _VendorHomeContent(isBackendConnected: _isBackendConnected);
       case 3:
-        screen = ParkingListScreen();
-        break;
+         return HomeScreen1();
       case 4:
       default:
-        screen = const Scaffold(body: Center(child: Text('Profile')));
-        break;
+        return _VendorProfileContent(isBackendConnected: _isBackendConnected);
     }
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => screen));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F1117),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1F2E),
-        elevation: 0,
-        title: const Text('Vendor Dashboard'),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
+    return Container(
+  decoration: const BoxDecoration(
+    gradient: LinearGradient(
+      colors: [
+        Color.fromARGB(255, 13, 105, 48),
+        Color(0xFF020617),
+      ],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    ),
+  ),
+  child: Scaffold(
+    extendBody: true,
+    backgroundColor: Colors.transparent, // keep this transparent
+    body: _buildBody(),
+    bottomNavigationBar: AppFloatingNavBar(
+      selectedIndex: _selectedIndex,
+      onTap: _onNavTap,
+    ),
+  ),
+);
+  }
+}
+
+class _VendorHomeContent extends StatelessWidget {
+  final bool isBackendConnected;
+  const _VendorHomeContent({required this.isBackendConnected});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.cyanAccent.withValues(alpha: 0.15),
+                    Colors.cyanAccent.withValues(alpha: 0.05),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.3)),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.cyanAccent.withValues(alpha: 0.15),
-                          Colors.cyanAccent.withValues(alpha: 0.05),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.3)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Hello, Vendor!',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Manage your parking spaces',
-                          style: TextStyle(color: Colors.white60, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Stats row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatBox(
-                          icon: Icons.local_parking,
-                          label: 'Total Spaces',
-                          value: '48',
-                          color: Colors.tealAccent,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatBox(
-                          icon: Icons.check_circle,
-                          label: 'Occupied',
-                          value: '32',
-                          color: Colors.cyanAccent,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatBox(
-                          icon: Icons.trending_up,
-                          label: 'Revenue',
-                          value: '€1,240',
-                          color: Colors.blueAccent,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatBox(
-                          icon: Icons.schedule,
-                          label: 'Pending',
-                          value: '5',
-                          color: Colors.orangeAccent,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Action buttons
-                  const Text(
-                    'Quick Actions',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _ActionCard(
-                    icon: Icons.add_circle_outline,
-                    title: 'Add New Space',
-                    subtitle: 'Add parking spaces to your inventory',
-                    onTap: () {},
-                  ),
-                  const SizedBox(height: 10),
-                  _ActionCard(
-                    icon: Icons.edit_note,
-                    title: 'Manage Pricing',
-                    subtitle: 'Update rates for your spaces',
-                    onTap: () {},
-                  ),
-                  const SizedBox(height: 10),
-                  _ActionCard(
-                    icon: Icons.bar_chart,
-                    title: 'View Reports',
-                    subtitle: 'Check occupancy and revenue analytics',
-                    onTap: () {},
-                  ),
-                  const SizedBox(height: 10),
-                  _ActionCard(
-                    icon: Icons.logout,
-                    title: 'Logout',
-                    subtitle: 'Sign out of your account',
-                    onTap: () async {
-                      await AuthService.logout();
-                      if (context.mounted) {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-                          (route) => false,
-                        );
-                      }
-                    },
-                  ),
+                  Text('Hello, Vendor!', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Text('Manage your parking spaces', style: TextStyle(color: Colors.white60, fontSize: 14)),
                 ],
               ),
             ),
-          ),
-          if (!_isBackendConnected)
-            Container(
-              color: Colors.red,
-              width: double.infinity,
-              padding: const EdgeInsets.all(8.0),
-              child: const Text(
-                'Warning: Backend server is not reachable. Some features may not work.',
-                style: TextStyle(color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: _StatBox(icon: Icons.local_parking, label: 'Total Spaces', value: '48', color: Colors.tealAccent)),
+                const SizedBox(width: 12),
+                Expanded(child: _StatBox(icon: Icons.check_circle, label: 'Occupied', value: '32', color: Colors.cyanAccent)),
+              ],
             ),
-        ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _StatBox(icon: Icons.trending_up, label: 'Revenue', value: '€1,240', color: Colors.blueAccent)),
+                const SizedBox(width: 12),
+                Expanded(child: _StatBox(icon: Icons.schedule, label: 'Pending', value: '5', color: Colors.orangeAccent)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Text('Quick Actions', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            _ActionCard(icon: Icons.add_circle_outline, title: 'Add New Space', subtitle: 'Add parking spaces to your inventory', onTap: () {}),
+            const SizedBox(height: 10),
+            _ActionCard(icon: Icons.edit_note, title: 'Manage Pricing', subtitle: 'Update rates for your spaces', onTap: () {}),
+            const SizedBox(height: 10),
+            _ActionCard(icon: Icons.bar_chart, title: 'View Reports', subtitle: 'Check occupancy and revenue analytics', onTap: () {}),
+            if (!isBackendConnected) ...[
+              const SizedBox(height: 16),
+              Container(
+                color: Colors.red,
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                child: const Text(
+                  'Warning: Backend server is not reachable. Some features may not work.',
+                  style: TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
-      bottomNavigationBar: AppFloatingNavBar(
-        selectedIndex: _selectedIndex,
-        onTap: _onNavTap,
+    );
+  }
+}
+
+class _VendorProfileContent extends StatelessWidget {
+  final bool isBackendConnected;
+  const _VendorProfileContent({required this.isBackendConnected});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ActionCard(
+              icon: Icons.logout,
+              title: 'Logout',
+              subtitle: 'Sign out of your account',
+              onTap: () async {
+                await AuthService.logout();
+                if (context.mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                    (route) => false,
+                  );
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -259,15 +223,8 @@ class _StatBox extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 24),
           const SizedBox(height: 8),
-          Text(value, style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          )),
-          Text(label, style: const TextStyle(
-            color: Colors.white60,
-            fontSize: 12,
-          )),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12)),
         ],
       ),
     );
@@ -306,15 +263,8 @@ class _ActionCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  )),
-                  Text(subtitle, style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 12,
-                  )),
+                  Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+                  Text(subtitle, style: const TextStyle(color: Colors.white60, fontSize: 12)),
                 ],
               ),
             ),
